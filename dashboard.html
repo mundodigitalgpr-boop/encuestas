@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard · Satisfacción del Restaurante</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --rojo:#b91c1c; --rojo-osc:#7f1d1d; --dorado:#f59e0b; --verde:#16a34a; --gris:#6b7280;
+    --bg:#f3f4f6; --card:#fff; --txt:#1f2937; --linea:#e5e7eb;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);}
+  header{
+    background:linear-gradient(135deg,var(--rojo),var(--rojo-osc));color:#fff;
+    padding:22px 20px;box-shadow:0 2px 8px rgba(0,0,0,.15);
+  }
+  header h1{margin:0;font-size:1.4rem;display:flex;align-items:center;gap:10px;}
+  header .meta{font-size:.85rem;opacity:.9;margin-top:4px;}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
+  /* KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px;}
+  .kpi{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.06);text-align:center;}
+  .kpi .num{font-size:2rem;font-weight:800;line-height:1;}
+  .kpi .cap{color:var(--gris);font-size:.82rem;margin-top:6px;}
+  .kpi.nps .num{color:var(--rojo);}
+  .kpi.csat .num{color:var(--dorado);}
+  .kpi.total .num{color:var(--txt);}
+  .kpi .badge{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:999px;margin-top:8px;font-weight:600;}
+  .b-ok{background:#dcfce7;color:#166534;} .b-mid{background:#fef9c3;color:#854d0e;} .b-bad{background:#fee2e2;color:#991b1b;}
+  /* Grid de gráficas */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:760px){.grid{grid-template-columns:1fr;}}
+  .panel{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .panel h2{margin:0 0 14px;font-size:1rem;color:var(--rojo-osc);}
+  .panel.full{grid-column:1/-1;}
+  .chart-box{position:relative;height:280px;}
+  /* Comentarios */
+  .coment{border-left:3px solid var(--dorado);background:#fffbeb;padding:10px 14px;border-radius:0 10px 10px 0;margin-bottom:10px;}
+  .coment .top{display:flex;justify-content:space-between;font-size:.75rem;color:var(--gris);margin-bottom:4px;}
+  .coment .txt{font-size:.92rem;}
+  .coment-list{max-height:360px;overflow:auto;}
+  .loading,.empty{text-align:center;color:var(--gris);padding:40px;}
+  .refresh{background:#fff;color:var(--rojo);border:1px solid #fff;border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:.85rem;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding-bottom:0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div>
+      <h1>🍽️ Satisfacción del Restaurante</h1>
+      <div class="meta" id="meta">Cargando datos...</div>
+    </div>
+    <button class="refresh" onclick="cargar()">↻ Actualizar</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi nps"><div class="num" id="kpiNps">–</div><div class="cap">NPS</div><div id="npsBadge"></div></div>
+    <div class="kpi csat"><div class="num" id="kpiCsat">–</div><div class="cap">CSAT promedio (de 5)</div></div>
+    <div class="kpi total"><div class="num" id="kpiTotal">–</div><div class="cap">Encuestas recibidas</div></div>
+    <div class="kpi total"><div class="num" id="kpiProm">–</div><div class="cap">% Promotores</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Distribución NPS (Promotores / Pasivos / Detractores)</h2>
+      <div class="chart-box"><canvas id="chartNpsDona"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Promedios CSAT por categoría</h2>
+      <div class="chart-box"><canvas id="chartCsat"></canvas></div>
+    </div>
+    <div class="panel full">
+      <h2>Tendencia del NPS (por día)</h2>
+      <div class="chart-box"><canvas id="chartTendencia"></canvas></div>
+    </div>
+    <div class="panel full">
+      <h2>💬 Comentarios recientes</h2>
+      <div class="coment-list" id="comentarios"><div class="loading">Cargando...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Configuración Supabase ===== */
+const SUPABASE_URL = "https://bmladupirmrzaqgmmsyd.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbGFkdXBpcm1yemFxZ21tc3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MjMzMjcsImV4cCI6MjA5NzE5OTMyN30.hjlZ61IrvRxtMuuezE6dMZ4UhcV92ocWMXFP_baPC0o";
+
+const CATS = [
+  { key:"csat_comida",   nombre:"Comida" },
+  { key:"csat_servicio", nombre:"Servicio" },
+  { key:"csat_ambiente", nombre:"Ambiente" },
+  { key:"csat_limpieza", nombre:"Limpieza" },
+  { key:"csat_precio",   nombre:"Precio" },
+];
+
+let charts = {};
+
+async function cargar(){
+  let data = [];
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/encuestas?select=*&order=created_at.asc`, {
+      headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if (!res.ok) throw new Error(await res.text());
+    data = await res.json();
+  } catch(e){
+    document.getElementById("meta").textContent = "Error al cargar datos. Revisa la configuración de Supabase.";
+    console.error(e); return;
+  }
+
+  const n = data.length;
+  document.getElementById("meta").textContent =
+    `${n} respuesta${n!==1?"s":""} · Actualizado ${new Date().toLocaleString("es")}`;
+  document.getElementById("kpiTotal").textContent = n;
+
+  if (n === 0){
+    document.getElementById("comentarios").innerHTML = '<div class="empty">Aún no hay respuestas. ¡Comparte el QR de la encuesta!</div>';
+    return;
+  }
+
+  /* ---- NPS ---- */
+  const prom = data.filter(d=>d.nps>=9).length;
+  const pas  = data.filter(d=>d.nps>=7 && d.nps<=8).length;
+  const det  = data.filter(d=>d.nps<=6).length;
+  const nps  = Math.round((prom/n - det/n) * 100);
+  document.getElementById("kpiNps").textContent = nps;
+  document.getElementById("kpiProm").textContent = Math.round(prom/n*100) + "%";
+  const badge = document.getElementById("npsBadge");
+  if (nps >= 50){ badge.innerHTML = '<span class="badge b-ok">Excelente</span>'; }
+  else if (nps >= 0){ badge.innerHTML = '<span class="badge b-mid">Aceptable</span>'; }
+  else { badge.innerHTML = '<span class="badge b-bad">Crítico</span>'; }
+
+  /* ---- CSAT promedios ---- */
+  const proms = CATS.map(c=>{
+    const vals = data.map(d=>d[c.key]).filter(v=>v!=null);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  });
+  const csatGlobal = proms.filter(p=>p>0);
+  document.getElementById("kpiCsat").textContent =
+    csatGlobal.length ? (csatGlobal.reduce((a,b)=>a+b,0)/csatGlobal.length).toFixed(1) : "–";
+
+  /* ---- Tendencia por día ---- */
+  const porDia = {};
+  data.forEach(d=>{
+    const k = (d.created_at||"").slice(0,10);
+    (porDia[k] ??= []).push(d.nps);
+  });
+  const dias = Object.keys(porDia).sort();
+  const tendencia = dias.map(k=>{
+    const arr = porDia[k], t = arr.length;
+    const p = arr.filter(v=>v>=9).length, dt = arr.filter(v=>v<=6).length;
+    return Math.round((p/t - dt/t)*100);
+  });
+
+  pintar(prom, pas, det, proms, dias, tendencia);
+  pintarComentarios(data);
+}
+
+function pintar(prom, pas, det, proms, dias, tendencia){
+  Object.values(charts).forEach(c=>c.destroy());
+
+  charts.dona = new Chart(document.getElementById("chartNpsDona"), {
+    type:"doughnut",
+    data:{ labels:["Promotores (9-10)","Pasivos (7-8)","Detractores (0-6)"],
+      datasets:[{ data:[prom,pas,det], backgroundColor:["#16a34a","#f59e0b","#b91c1c"], borderWidth:2, borderColor:"#fff" }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"bottom" } } }
+  });
+
+  charts.csat = new Chart(document.getElementById("chartCsat"), {
+    type:"bar",
+    data:{ labels:CATS.map(c=>c.nombre),
+      datasets:[{ label:"Promedio (1-5)", data:proms.map(p=>+p.toFixed(2)),
+        backgroundColor:"#f59e0b", borderRadius:8 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ beginAtZero:true, max:5, ticks:{ stepSize:1 } } },
+      plugins:{ legend:{ display:false } } }
+  });
+
+  charts.tend = new Chart(document.getElementById("chartTendencia"), {
+    type:"line",
+    data:{ labels:dias,
+      datasets:[{ label:"NPS", data:tendencia, borderColor:"#b91c1c", backgroundColor:"rgba(185,28,28,.12)",
+        fill:true, tension:.3, pointBackgroundColor:"#b91c1c", pointRadius:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ min:-100, max:100, ticks:{ stepSize:50 } } },
+      plugins:{ legend:{ display:false } } }
+  });
+}
+
+function pintarComentarios(data){
+  const conComentario = data.filter(d=>d.comentario && d.comentario.trim()).reverse();
+  const cont = document.getElementById("comentarios");
+  if (!conComentario.length){ cont.innerHTML = '<div class="empty">Aún no hay comentarios.</div>'; return; }
+  cont.innerHTML = conComentario.map(d=>{
+    const fecha = new Date(d.created_at).toLocaleDateString("es",{day:"numeric",month:"short",year:"numeric"});
+    return `<div class="coment">
+      <div class="top"><span>NPS: ${d.nps}/10</span><span>${fecha}</span></div>
+      <div class="txt">${escapar(d.comentario)}</div>
+    </div>`;
+  }).join("");
+}
+
+function escapar(s){
+  return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+cargar();
+</script>
+</body>
+</html>

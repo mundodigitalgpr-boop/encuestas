@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#b91c1c" />
+<title>Encuesta de Satisfacción</title>
+<style>
+  :root{
+    --rojo:#b91c1c; --rojo-osc:#7f1d1d; --dorado:#f59e0b;
+    --bg:#fff7ed; --txt:#1f2937; --gris:#6b7280; --linea:#e5e7eb;
+    --ok:#16a34a; --radio:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);color:var(--txt);line-height:1.5;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 48px;}
+  header{text-align:center;margin-bottom:8px;}
+  .logo{
+    width:64px;height:64px;border-radius:50%;margin:0 auto 12px;
+    background:linear-gradient(135deg,var(--rojo),var(--rojo-osc));
+    display:flex;align-items:center;justify-content:center;font-size:32px;
+    box-shadow:0 6px 16px rgba(185,28,28,.3);
+  }
+  h1{font-size:1.4rem;margin:0 0 4px;color:var(--rojo-osc);}
+  .sub{color:var(--gris);font-size:.95rem;margin:0 0 24px;text-align:center;}
+  .card{
+    background:#fff;border:1px solid var(--linea);border-radius:var(--radio);
+    padding:18px 16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .label{font-weight:600;margin-bottom:10px;display:block;}
+  .hint{color:var(--gris);font-size:.85rem;font-weight:400;}
+  /* NPS 0-10 */
+  .nps-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+  .nps-btn{
+    aspect-ratio:1;border:1.5px solid var(--linea);background:#fff;border-radius:12px;
+    font-size:1.05rem;font-weight:600;color:var(--txt);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:.15s;
+  }
+  .nps-btn:active{transform:scale(.92);}
+  .nps-btn.sel{background:var(--rojo);border-color:var(--rojo);color:#fff;box-shadow:0 4px 10px rgba(185,28,28,.35);}
+  .nps-ends{display:flex;justify-content:space-between;font-size:.78rem;color:var(--gris);margin-top:8px;}
+  /* Estrellas */
+  .stars{display:flex;gap:6px;font-size:2.1rem;line-height:1;}
+  .star{cursor:pointer;color:#d1d5db;transition:transform .1s,color .1s;user-select:none;}
+  .star:active{transform:scale(1.2);}
+  .star.on{color:var(--dorado);}
+  .cat-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .cat-row + .cat-row{margin-top:16px;padding-top:16px;border-top:1px solid var(--linea);}
+  .cat-name{font-weight:600;}
+  .cat-emoji{margin-right:6px;}
+  textarea{
+    width:100%;border:1.5px solid var(--linea);border-radius:12px;padding:12px;
+    font:inherit;resize:vertical;min-height:90px;color:var(--txt);
+  }
+  textarea:focus{outline:none;border-color:var(--rojo);}
+  .btn{
+    width:100%;border:none;border-radius:14px;padding:16px;font-size:1.1rem;font-weight:700;
+    background:linear-gradient(135deg,var(--rojo),var(--rojo-osc));color:#fff;cursor:pointer;
+    box-shadow:0 6px 16px rgba(185,28,28,.35);transition:.15s;
+  }
+  .btn:active{transform:translateY(2px);}
+  .btn:disabled{opacity:.6;cursor:not-allowed;}
+  .err{color:var(--rojo);font-size:.85rem;margin-top:8px;text-align:center;display:none;}
+  /* Pantalla de gracias */
+  #gracias{display:none;text-align:center;padding:48px 16px;}
+  #gracias .check{
+    width:84px;height:84px;border-radius:50%;background:var(--ok);color:#fff;
+    font-size:46px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;
+    box-shadow:0 8px 24px rgba(22,163,74,.35);
+  }
+  #gracias h2{color:var(--ok);margin:0 0 8px;}
+  .footer{text-align:center;color:var(--gris);font-size:.78rem;margin-top:24px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ====== FORMULARIO ====== -->
+  <div id="form">
+    <header>
+      <div class="logo">🍽️</div>
+      <h1>¿Cómo estuvo tu experiencia?</h1>
+    </header>
+    <p class="sub">Tu opinión nos toma menos de 1 minuto y nos ayuda muchísimo. ¡Gracias!</p>
+
+    <!-- NPS -->
+    <div class="card">
+      <span class="label">¿Qué tan probable es que nos recomiendes? <span class="hint">(0 = nada, 10 = totalmente)</span></span>
+      <div class="nps-grid" id="nps"></div>
+      <div class="nps-ends"><span>😞 Nada probable</span><span>Muy probable 😍</span></div>
+    </div>
+
+    <!-- CSAT por categorías -->
+    <div class="card" id="csat">
+      <span class="label">Califica cada aspecto <span class="hint">(toca las estrellas)</span></span>
+    </div>
+
+    <!-- Comentario -->
+    <div class="card">
+      <span class="label">¿Algo más que quieras contarnos? <span class="hint">(opcional)</span></span>
+      <textarea id="comentario" maxlength="2000" placeholder="Escribe aquí tu comentario..."></textarea>
+    </div>
+
+    <button class="btn" id="enviar">Enviar encuesta</button>
+    <div class="err" id="error">Por favor selecciona una puntuación (0–10) antes de enviar.</div>
+  </div>
+
+  <!-- ====== GRACIAS ====== -->
+  <div id="gracias">
+    <div class="check">✓</div>
+    <h2>¡Muchas gracias!</h2>
+    <p class="sub">Recibimos tu respuesta. Esperamos verte pronto de nuevo. 🙌</p>
+  </div>
+
+  <div class="footer">Encuesta anónima · Tus respuestas son confidenciales</div>
+</div>
+
+<script>
+/* ===== Configuración Supabase ===== */
+const SUPABASE_URL = "https://bmladupirmrzaqgmmsyd.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbGFkdXBpcm1yemFxZ21tc3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MjMzMjcsImV4cCI6MjA5NzE5OTMyN30.hjlZ61IrvRxtMuuezE6dMZ4UhcV92ocWMXFP_baPC0o";
+
+/* ===== Estado ===== */
+const respuesta = {
+  nps: null,
+  csat_comida: null, csat_servicio: null, csat_ambiente: null,
+  csat_limpieza: null, csat_precio: null, comentario: null
+};
+
+/* ===== NPS 0-10 ===== */
+const npsCont = document.getElementById("nps");
+for (let i = 0; i <= 10; i++) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "nps-btn"; b.textContent = i;
+  b.onclick = () => {
+    respuesta.nps = i;
+    [...npsCont.children].forEach(c => c.classList.remove("sel"));
+    b.classList.add("sel");
+    document.getElementById("error").style.display = "none";
+  };
+  npsCont.appendChild(b);
+}
+
+/* ===== CSAT estrellas ===== */
+const categorias = [
+  { key:"csat_comida",   nombre:"Comida",   emoji:"🍔" },
+  { key:"csat_servicio", nombre:"Servicio", emoji:"🧑‍🍳" },
+  { key:"csat_ambiente", nombre:"Ambiente", emoji:"🎶" },
+  { key:"csat_limpieza", nombre:"Limpieza", emoji:"🧼" },
+  { key:"csat_precio",   nombre:"Precio",   emoji:"💲" },
+];
+const csatCont = document.getElementById("csat");
+categorias.forEach(cat => {
+  const row = document.createElement("div");
+  row.className = "cat-row";
+  const name = document.createElement("div");
+  name.className = "cat-name";
+  name.innerHTML = `<span class="cat-emoji">${cat.emoji}</span>${cat.nombre}`;
+  const stars = document.createElement("div");
+  stars.className = "stars";
+  for (let s = 1; s <= 5; s++) {
+    const star = document.createElement("span");
+    star.className = "star"; star.textContent = "★";
+    star.onclick = () => {
+      respuesta[cat.key] = s;
+      [...stars.children].forEach((st, idx) => st.classList.toggle("on", idx < s));
+    };
+    stars.appendChild(star);
+  }
+  row.appendChild(name); row.appendChild(stars);
+  csatCont.appendChild(row);
+});
+
+/* ===== Enviar ===== */
+const btn = document.getElementById("enviar");
+btn.onclick = async () => {
+  if (respuesta.nps === null) {
+    document.getElementById("error").style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  respuesta.comentario = document.getElementById("comentario").value.trim() || null;
+  btn.disabled = true; btn.textContent = "Enviando...";
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/encuestas`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify(respuesta)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    document.getElementById("form").style.display = "none";
+    document.getElementById("gracias").style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (e) {
+    console.error(e);
+    const err = document.getElementById("error");
+    err.textContent = "No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.";
+    err.style.display = "block";
+    btn.disabled = false; btn.textContent = "Enviar encuesta";
+  }
+};
+</script>
+</body>
+</html>
