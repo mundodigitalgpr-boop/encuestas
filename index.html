@@ -7,51 +7,78 @@
 <title>Encuesta de Satisfacción</title>
 <style>
   :root{
-    --rojo:#b91c1c; --rojo-osc:#7f1d1d; --dorado:#f59e0b;
-    --bg:#fff7ed; --txt:#1f2937; --gris:#6b7280; --linea:#e5e7eb;
-    --ok:#16a34a; --radio:18px;
+    --rojo:#b91c1c; --rojo-osc:#7f1d1d; --dorado:#f59e0b; --verde:#16a34a;
+    --bg:#fff7ed; --txt:#1f2937; --gris:#6b7280; --linea:#e5e7eb; --radio:18px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{
     margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    background:var(--bg);color:var(--txt);line-height:1.5;
+    background:
+      radial-gradient(900px 400px at 80% -10%, #ffe4cf 0%, transparent 60%),
+      radial-gradient(700px 400px at -10% 10%, #ffe1e1 0%, transparent 55%),
+      var(--bg);
+    color:var(--txt);line-height:1.5;
     padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
   }
   .wrap{max-width:520px;margin:0 auto;padding:20px 16px 48px;}
+  /* Barra de progreso fija */
+  .progress{position:fixed;top:0;left:0;right:0;height:5px;background:rgba(0,0,0,.06);z-index:10;}
+  .progress > i{display:block;height:100%;width:0;border-radius:0 4px 4px 0;
+    background:linear-gradient(90deg,var(--rojo),var(--dorado),var(--verde));transition:width .4s cubic-bezier(.4,1.3,.5,1);}
   header{text-align:center;margin-bottom:8px;}
   .logo{
-    width:64px;height:64px;border-radius:50%;margin:0 auto 12px;
+    width:72px;height:72px;border-radius:22px;margin:0 auto 14px;
     background:linear-gradient(135deg,var(--rojo),var(--rojo-osc));
-    display:flex;align-items:center;justify-content:center;font-size:32px;
-    box-shadow:0 6px 16px rgba(185,28,28,.3);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 10px 22px rgba(185,28,28,.35);transform:rotate(-6deg);
+    animation:pop .6s cubic-bezier(.2,1.4,.4,1);
   }
-  h1{font-size:1.4rem;margin:0 0 4px;color:var(--rojo-osc);}
+  .logo svg{width:38px;height:38px;stroke:#fff;}
+  @keyframes pop{0%{transform:scale(.4) rotate(-30deg);opacity:0;}100%{transform:scale(1) rotate(-6deg);opacity:1;}}
+  h1{font-size:1.45rem;margin:0 0 4px;color:var(--rojo-osc);}
   .sub{color:var(--gris);font-size:.95rem;margin:0 0 24px;text-align:center;}
   .card{
     background:#fff;border:1px solid var(--linea);border-radius:var(--radio);
     padding:18px 16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);
+    animation:rise .5s both;
   }
+  .card:nth-child(2){animation-delay:.05s;}
+  .card:nth-child(3){animation-delay:.1s;}
+  .card:nth-child(4){animation-delay:.15s;}
+  @keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
   .label{font-weight:600;margin-bottom:10px;display:block;}
   .hint{color:var(--gris);font-size:.85rem;font-weight:400;}
   /* NPS 0-10 */
   .nps-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
   .nps-btn{
     aspect-ratio:1;border:1.5px solid var(--linea);background:#fff;border-radius:12px;
-    font-size:1.05rem;font-weight:600;color:var(--txt);cursor:pointer;
-    display:flex;align-items:center;justify-content:center;transition:.15s;
+    font-size:1.05rem;font-weight:700;color:var(--txt);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:transform .12s,box-shadow .2s,background .2s,color .2s,border-color .2s;
   }
-  .nps-btn:active{transform:scale(.92);}
-  .nps-btn.sel{background:var(--rojo);border-color:var(--rojo);color:#fff;box-shadow:0 4px 10px rgba(185,28,28,.35);}
-  .nps-ends{display:flex;justify-content:space-between;font-size:.78rem;color:var(--gris);margin-top:8px;}
+  .nps-btn:active{transform:scale(.9);}
+  .nps-btn.sel{color:#fff;border-color:transparent;transform:scale(1.12);box-shadow:0 6px 16px rgba(0,0,0,.22);}
+  .nps-ends{display:flex;justify-content:space-between;font-size:.78rem;color:var(--gris);margin-top:10px;}
+  .nps-reaccion{
+    margin-top:12px;text-align:center;font-weight:700;font-size:1rem;min-height:1.3em;
+    opacity:0;transform:translateY(6px);transition:.3s;
+  }
+  .nps-reaccion.show{opacity:1;transform:none;}
   /* Estrellas */
-  .stars{display:flex;gap:6px;font-size:2.1rem;line-height:1;}
-  .star{cursor:pointer;color:#d1d5db;transition:transform .1s,color .1s;user-select:none;}
-  .star:active{transform:scale(1.2);}
-  .star.on{color:var(--dorado);}
   .cat-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
-  .cat-row + .cat-row{margin-top:16px;padding-top:16px;border-top:1px solid var(--linea);}
+  .cat-row + .cat-row{margin-top:14px;padding-top:14px;border-top:1px solid var(--linea);}
+  .cat-left{display:flex;align-items:center;gap:10px;min-width:0;}
+  .cat-ico{
+    width:38px;height:38px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;
+    background:#fff4e6;
+  }
+  .cat-ico svg{width:21px;height:21px;stroke:var(--rojo);}
   .cat-name{font-weight:600;}
-  .cat-emoji{margin-right:6px;}
+  .cat-fb{display:block;font-size:.78rem;color:var(--gris);min-height:1em;transition:color .2s;}
+  .stars{display:flex;gap:5px;font-size:2rem;line-height:1;}
+  .star{cursor:pointer;color:#e2e5ea;transition:transform .12s,color .12s;user-select:none;}
+  .star:active{transform:scale(1.3);}
+  .star.on{color:var(--dorado);animation:bounce .35s;}
+  @keyframes bounce{0%{transform:scale(.6);}60%{transform:scale(1.25);}100%{transform:scale(1);}}
   textarea{
     width:100%;border:1.5px solid var(--linea);border-radius:12px;padding:12px;
     font:inherit;resize:vertical;min-height:90px;color:var(--txt);
@@ -60,38 +87,49 @@
   .btn{
     width:100%;border:none;border-radius:14px;padding:16px;font-size:1.1rem;font-weight:700;
     background:linear-gradient(135deg,var(--rojo),var(--rojo-osc));color:#fff;cursor:pointer;
-    box-shadow:0 6px 16px rgba(185,28,28,.35);transition:.15s;
+    box-shadow:0 6px 16px rgba(185,28,28,.35);transition:transform .12s;
   }
-  .btn:active{transform:translateY(2px);}
+  .btn:active{transform:translateY(2px) scale(.99);}
   .btn:disabled{opacity:.6;cursor:not-allowed;}
   .err{color:var(--rojo);font-size:.85rem;margin-top:8px;text-align:center;display:none;}
   /* Pantalla de gracias */
-  #gracias{display:none;text-align:center;padding:48px 16px;}
-  #gracias .check{
-    width:84px;height:84px;border-radius:50%;background:var(--ok);color:#fff;
-    font-size:46px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;
-    box-shadow:0 8px 24px rgba(22,163,74,.35);
-  }
-  #gracias h2{color:var(--ok);margin:0 0 8px;}
+  #gracias{display:none;text-align:center;padding:56px 16px;}
+  .check-c{width:96px;height:96px;margin:0 auto 22px;}
+  .check-c circle{stroke:var(--verde);stroke-width:5;fill:none;stroke-dasharray:289;stroke-dashoffset:289;animation:draw .6s ease forwards;}
+  .check-c path{stroke:var(--verde);stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:80;stroke-dashoffset:80;animation:draw .4s .55s ease forwards;}
+  @keyframes draw{to{stroke-dashoffset:0;}}
+  #gracias h2{color:var(--verde);margin:0 0 8px;font-size:1.6rem;}
   .footer{text-align:center;color:var(--gris);font-size:.78rem;margin-top:24px;}
+  /* Confeti */
+  .confeti{position:fixed;top:-12px;width:10px;height:14px;border-radius:2px;z-index:50;pointer-events:none;
+    animation:caer linear forwards;}
+  @keyframes caer{to{transform:translateY(110vh) rotate(720deg);opacity:.9;}}
 </style>
 </head>
 <body>
+<div class="progress"><i id="barra"></i></div>
 <div class="wrap">
 
   <!-- ====== FORMULARIO ====== -->
   <div id="form">
     <header>
-      <div class="logo">🍽️</div>
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 3v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3M6 3v18"/>
+          <path d="M18 3c-1.7 0-3 2-3 5s1.3 4 3 4v9"/>
+        </svg>
+      </div>
       <h1>¿Cómo estuvo tu experiencia?</h1>
     </header>
-    <p class="sub">Tu opinión nos toma menos de 1 minuto y nos ayuda muchísimo. ¡Gracias!</p>
+    <p class="sub">Te tomará menos de 1 minuto y nos ayuda muchísimo a mejorar.</p>
 
     <!-- NPS -->
     <div class="card">
       <span class="label">¿Qué tan probable es que nos recomiendes? <span class="hint">(0 = nada, 10 = totalmente)</span></span>
       <div class="nps-grid" id="nps"></div>
-      <div class="nps-ends"><span>😞 Nada probable</span><span>Muy probable 😍</span></div>
+      <div class="nps-ends"><span>Nada probable</span><span>Muy probable</span></div>
+      <div class="nps-reaccion" id="npsReaccion"></div>
     </div>
 
     <!-- CSAT por categorías -->
@@ -111,9 +149,12 @@
 
   <!-- ====== GRACIAS ====== -->
   <div id="gracias">
-    <div class="check">✓</div>
+    <svg class="check-c" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="46"/>
+      <path d="M28 52 L44 68 L74 34"/>
+    </svg>
     <h2>¡Muchas gracias!</h2>
-    <p class="sub">Recibimos tu respuesta. Esperamos verte pronto de nuevo. 🙌</p>
+    <p class="sub">Recibimos tu respuesta. Esperamos verte muy pronto de nuevo.</p>
   </div>
 
   <div class="footer">Encuesta anónima · Tus respuestas son confidenciales</div>
@@ -130,36 +171,68 @@ const respuesta = {
   csat_comida: null, csat_servicio: null, csat_ambiente: null,
   csat_limpieza: null, csat_precio: null, comentario: null
 };
+const PALABRAS = ["", "Mal", "Regular", "Bien", "Muy bien", "¡Excelente!"];
+const COLORES_FB = ["", "#b91c1c", "#ea580c", "#ca8a04", "#65a30d", "#16a34a"];
+
+/* Color rojo→verde según la nota NPS (0..10) */
+function colorNps(i){ return `hsl(${(i/10)*120} 75% 42%)`; }
+
+function actualizarProgreso(){
+  const campos = ["nps","csat_comida","csat_servicio","csat_ambiente","csat_limpieza","csat_precio"];
+  const hechos = campos.filter(k => respuesta[k] !== null).length;
+  document.getElementById("barra").style.width = (hechos / campos.length * 100) + "%";
+}
 
 /* ===== NPS 0-10 ===== */
 const npsCont = document.getElementById("nps");
+const npsReaccion = document.getElementById("npsReaccion");
+function reaccionNps(i){
+  if (i <= 3) return ["Lamentamos que no fuera lo esperado. Cuéntanos abajo qué pasó.", colorNps(i)];
+  if (i <= 6) return ["Gracias por tu sinceridad. ¿Qué podríamos mejorar?", colorNps(i)];
+  if (i <= 8) return ["¡Qué bueno! Nos esforzamos por darte aún más.", colorNps(i)];
+  return ["¡Increíble! Nos encanta que la hayas pasado genial.", colorNps(i)];
+}
 for (let i = 0; i <= 10; i++) {
   const b = document.createElement("button");
   b.type = "button"; b.className = "nps-btn"; b.textContent = i;
   b.onclick = () => {
     respuesta.nps = i;
-    [...npsCont.children].forEach(c => c.classList.remove("sel"));
-    b.classList.add("sel");
+    [...npsCont.children].forEach(c => { c.classList.remove("sel"); c.style.background = "#fff"; });
+    b.classList.add("sel"); b.style.background = colorNps(i);
+    const [txt, col] = reaccionNps(i);
+    npsReaccion.textContent = txt; npsReaccion.style.color = col;
+    npsReaccion.classList.add("show");
     document.getElementById("error").style.display = "none";
+    actualizarProgreso();
   };
   npsCont.appendChild(b);
 }
 
-/* ===== CSAT estrellas ===== */
+/* ===== CSAT estrellas con íconos SVG ===== */
+const ICOS = {
+  comida:'<path d="M4 3v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V3M6 3v18"/><path d="M18 3c-1.7 0-3 2-3 5s1.3 4 3 4v9"/>',
+  servicio:'<path d="M4 17h16"/><path d="M12 6a6 6 0 0 0-6 6 6 6 0 0 0 .3 2h11.4a6 6 0 0 0 .3-2 6 6 0 0 0-6-6Z"/><path d="M12 6V4"/>',
+  ambiente:'<circle cx="7" cy="18" r="2.5"/><circle cx="17" cy="16" r="2.5"/><path d="M9.5 18V6l10-2v10"/>',
+  limpieza:'<path d="M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15l-1.8-4.2L5.5 9l4.7-1.3L12 3Z"/><path d="M18 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2Z"/>',
+  precio:'<path d="M3 12l8.7-8.7a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v5.9a2 2 0 0 1-.6 1.4L12 20.7a2 2 0 0 1-2.8 0L3 14.5a2 2 0 0 1 0-2.5Z"/><circle cx="16" cy="8" r="1.3"/>'
+};
 const categorias = [
-  { key:"csat_comida",   nombre:"Comida",   emoji:"🍔" },
-  { key:"csat_servicio", nombre:"Servicio", emoji:"🧑‍🍳" },
-  { key:"csat_ambiente", nombre:"Ambiente", emoji:"🎶" },
-  { key:"csat_limpieza", nombre:"Limpieza", emoji:"🧼" },
-  { key:"csat_precio",   nombre:"Precio",   emoji:"💲" },
+  { key:"csat_comida",   nombre:"Comida",   ico:ICOS.comida },
+  { key:"csat_servicio", nombre:"Servicio", ico:ICOS.servicio },
+  { key:"csat_ambiente", nombre:"Ambiente", ico:ICOS.ambiente },
+  { key:"csat_limpieza", nombre:"Limpieza", ico:ICOS.limpieza },
+  { key:"csat_precio",   nombre:"Precio",   ico:ICOS.precio },
 ];
 const csatCont = document.getElementById("csat");
 categorias.forEach(cat => {
   const row = document.createElement("div");
   row.className = "cat-row";
-  const name = document.createElement("div");
-  name.className = "cat-name";
-  name.innerHTML = `<span class="cat-emoji">${cat.emoji}</span>${cat.nombre}`;
+
+  const left = document.createElement("div");
+  left.className = "cat-left";
+  left.innerHTML = `<span class="cat-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${cat.ico}</svg></span>
+    <span><span class="cat-name">${cat.nombre}</span><span class="cat-fb" id="fb-${cat.key}">Sin calificar</span></span>`;
+
   const stars = document.createElement("div");
   stars.className = "stars";
   for (let s = 1; s <= 5; s++) {
@@ -168,12 +241,31 @@ categorias.forEach(cat => {
     star.onclick = () => {
       respuesta[cat.key] = s;
       [...stars.children].forEach((st, idx) => st.classList.toggle("on", idx < s));
+      const fb = document.getElementById("fb-" + cat.key);
+      fb.textContent = PALABRAS[s]; fb.style.color = COLORES_FB[s];
+      actualizarProgreso();
     };
     stars.appendChild(star);
   }
-  row.appendChild(name); row.appendChild(stars);
+  row.appendChild(left); row.appendChild(stars);
   csatCont.appendChild(row);
 });
+
+/* ===== Confeti ===== */
+function lanzarConfeti(){
+  const cols = ["#b91c1c","#f59e0b","#16a34a","#2563eb","#db2777"];
+  for (let i = 0; i < 90; i++){
+    const c = document.createElement("div");
+    c.className = "confeti";
+    c.style.left = Math.random()*100 + "vw";
+    c.style.background = cols[i % cols.length];
+    c.style.animationDuration = (2 + Math.random()*1.8) + "s";
+    c.style.animationDelay = (Math.random()*0.4) + "s";
+    c.style.transform = `translateY(0) rotate(${Math.random()*360}deg)`;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4200);
+  }
+}
 
 /* ===== Enviar ===== */
 const btn = document.getElementById("enviar");
@@ -200,6 +292,8 @@ btn.onclick = async () => {
     if (!res.ok) throw new Error(await res.text());
     document.getElementById("form").style.display = "none";
     document.getElementById("gracias").style.display = "block";
+    document.getElementById("barra").style.width = "100%";
+    lanzarConfeti();
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch (e) {
     console.error(e);
