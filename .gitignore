@@ -1,2 +1,4 @@
 # Paquetes generados para subir a Netlify Drop (artefactos temporales)
 *.zip
+# QR generados (se regeneran con generar_qr.py)
+qr_chaca*.png
