@@ -95,7 +95,7 @@
 /* Pega aquí la URL de tu Web App de Apps Script (termina en /exec) */
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxgaIiiA3q_FnkucoeiGnzQQk6srDS1-W0gGz3h_HQbFE29m1UE2V-oiKbwXjnHDz23JQ/exec";
 
-const CATS = [
+let CATS = [
   { key:"csat_comida",   nombre:"Comida" },
   { key:"csat_servicio", nombre:"Servicio" },
   { key:"csat_ambiente", nombre:"Ambiente" },
@@ -235,7 +235,22 @@ function escapar(s){
   return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-cargar();
+/* Carga primero los nombres/orden de categorías desde la hoja, luego los datos */
+(function iniciar(){
+  const cb = "__cfgDashCb";
+  const s = document.createElement("script");
+  const limpiar = () => { try { s.remove(); } catch(_){} };
+  window[cb] = (cfg) => {
+    limpiar();
+    if (cfg && !Array.isArray(cfg) && Array.isArray(cfg.categorias) && cfg.categorias.length){
+      CATS = cfg.categorias.filter(c => c.activo).map(c => ({ key:"csat_"+c.key, nombre:c.nombre }));
+    }
+    cargar();
+  };
+  s.onerror = () => { limpiar(); cargar(); };
+  s.src = APPS_SCRIPT_URL + "?action=config&callback=" + cb + "&t=" + Date.now();
+  document.body.appendChild(s);
+})();
 </script>
 </body>
 </html>

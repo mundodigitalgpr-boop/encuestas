@@ -116,26 +116,27 @@
   <div id="form">
     <header>
       <img class="logo" src="logo.jpg" alt="Churrascos Chaca #5" />
-      <h1>¿Cómo estuvo tu experiencia?</h1>
+      <h1 id="tTitulo">¿Cómo estuvo tu experiencia?</h1>
     </header>
-    <p class="sub">Te tomará menos de 1 minuto y nos ayuda muchísimo a mejorar.</p>
+    <p class="sub" id="tSub">Te tomará menos de 1 minuto y nos ayuda muchísimo a mejorar.</p>
 
     <!-- NPS -->
     <div class="card">
-      <span class="label">¿Qué tan probable es que nos recomiendes? <span class="hint">(0 = nada, 10 = totalmente)</span></span>
+      <span class="label"><span id="tNpsQ">¿Qué tan probable es que nos recomiendes?</span> <span class="hint" id="tNpsHint">(0 = nada, 10 = totalmente)</span></span>
       <div class="nps-grid" id="nps"></div>
-      <div class="nps-ends"><span>Nada probable</span><span>Muy probable</span></div>
+      <div class="nps-ends"><span id="tNpsMin">Nada probable</span><span id="tNpsMax">Muy probable</span></div>
       <div class="nps-reaccion" id="npsReaccion"></div>
     </div>
 
     <!-- CSAT por categorías -->
-    <div class="card" id="csat">
-      <span class="label">Califica cada aspecto <span class="hint">(toca las estrellas)</span></span>
+    <div class="card">
+      <span class="label"><span id="tCsatQ">Califica cada aspecto</span> <span class="hint" id="tCsatHint">(toca las estrellas)</span></span>
+      <div id="csat"></div>
     </div>
 
     <!-- Comentario -->
     <div class="card">
-      <span class="label">¿Algo más que quieras contarnos? <span class="hint">(opcional)</span></span>
+      <span class="label"><span id="tComQ">¿Algo más que quieras contarnos?</span> <span class="hint">(opcional)</span></span>
       <textarea id="comentario" maxlength="2000" placeholder="Escribe aquí tu comentario..."></textarea>
     </div>
 
@@ -149,8 +150,8 @@
       <circle cx="50" cy="50" r="46"/>
       <path d="M28 52 L44 68 L74 34"/>
     </svg>
-    <h2>¡Muchas gracias!</h2>
-    <p class="sub">Recibimos tu respuesta. Esperamos verte muy pronto de nuevo.</p>
+    <h2 id="tGraciasTitulo">¡Muchas gracias!</h2>
+    <p class="sub" id="tGraciasTexto">Recibimos tu respuesta. Esperamos verte muy pronto de nuevo.</p>
   </div>
 
   <div class="footer">Encuesta anónima · Tus respuestas son confidenciales</div>
@@ -161,21 +162,70 @@
 /* Pega aquí la URL de tu Web App de Apps Script (termina en /exec) */
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxgaIiiA3q_FnkucoeiGnzQQk6srDS1-W0gGz3h_HQbFE29m1UE2V-oiKbwXjnHDz23JQ/exec";
 
+/* ===== Configuración por defecto (la pestaña "Config" de la hoja la sobreescribe) ===== */
+const DEFAULTS = {
+  titulo: "¿Cómo estuvo tu experiencia?",
+  subtitulo: "Te tomará menos de 1 minuto y nos ayuda muchísimo a mejorar.",
+  pregunta_nps: "¿Qué tan probable es que nos recomiendes?",
+  ayuda_nps: "(0 = nada, 10 = totalmente)",
+  nps_min: "Nada probable",
+  nps_max: "Muy probable",
+  pregunta_csat: "Califica cada aspecto",
+  ayuda_csat: "(toca las estrellas)",
+  pregunta_comentario: "¿Algo más que quieras contarnos?",
+  placeholder_comentario: "Escribe aquí tu comentario...",
+  texto_boton: "Enviar encuesta",
+  gracias_titulo: "¡Muchas gracias!",
+  gracias_texto: "Recibimos tu respuesta. Esperamos verte muy pronto de nuevo.",
+  reaccion_0_3: "Lamentamos que no fuera lo esperado. Cuéntanos abajo qué pasó.",
+  reaccion_4_6: "Gracias por tu sinceridad. ¿Qué podríamos mejorar?",
+  reaccion_7_8: "¡Qué bueno! Nos esforzamos por darte aún más.",
+  reaccion_9_10: "¡Increíble! Nos encanta que la hayas pasado genial.",
+  estrellas: ["", "Mal", "Regular", "Bien", "Muy bien", "¡Excelente!"],
+  categorias: [
+    { key:"comida",   nombre:"Comida",   activo:true },
+    { key:"servicio", nombre:"Servicio", activo:true },
+    { key:"ambiente", nombre:"Ambiente", activo:true },
+    { key:"limpieza", nombre:"Limpieza", activo:true },
+    { key:"precio",   nombre:"Precio",   activo:true }
+  ]
+};
+let CFG = JSON.parse(JSON.stringify(DEFAULTS));
+
 /* ===== Estado ===== */
 const respuesta = {
   nps: null,
   csat_comida: null, csat_servicio: null, csat_ambiente: null,
   csat_limpieza: null, csat_precio: null, comentario: null
 };
-const PALABRAS = ["", "Mal", "Regular", "Bien", "Muy bien", "¡Excelente!"];
 const COLORES_FB = ["", "#b91c1c", "#ea580c", "#ca8a04", "#65a30d", "#16a34a"];
+let enviado = false;       // ya se envió la encuesta
+let interactuado = false;  // el usuario ya tocó algo (evita re-render que borre su selección)
 
 /* Color rojo→verde según la nota NPS (0..10) */
 function colorNps(i){ return `hsl(${(i/10)*120} 75% 42%)`; }
 
+/* Asigna texto a un elemento si existe y el valor no está vacío */
+function sx(id, txt){ const el = document.getElementById(id); if (el && txt != null && txt !== "") el.textContent = txt; }
+
+/* Aplica todos los textos de la configuración a la pantalla */
+function aplicarTextos(){
+  sx("tTitulo", CFG.titulo);        sx("tSub", CFG.subtitulo);
+  sx("tNpsQ", CFG.pregunta_nps);    sx("tNpsHint", CFG.ayuda_nps);
+  sx("tNpsMin", CFG.nps_min);       sx("tNpsMax", CFG.nps_max);
+  sx("tCsatQ", CFG.pregunta_csat);  sx("tCsatHint", CFG.ayuda_csat);
+  sx("tComQ", CFG.pregunta_comentario);
+  sx("tGraciasTitulo", CFG.gracias_titulo); sx("tGraciasTexto", CFG.gracias_texto);
+  const ta = document.getElementById("comentario");
+  if (ta && CFG.placeholder_comentario) ta.placeholder = CFG.placeholder_comentario;
+  if (!enviado) btn.textContent = CFG.texto_boton || "Enviar encuesta";
+}
+
+function categoriasActivas(){ return (CFG.categorias || DEFAULTS.categorias).filter(c => c.activo); }
+
 function actualizarProgreso(){
-  const campos = ["nps","csat_comida","csat_servicio","csat_ambiente","csat_limpieza","csat_precio"];
-  const hechos = campos.filter(k => respuesta[k] !== null).length;
+  const campos = ["nps"].concat(categoriasActivas().map(c => "csat_" + c.key));
+  const hechos = campos.filter(k => respuesta[k] !== null && respuesta[k] !== undefined).length;
   document.getElementById("barra").style.width = (hechos / campos.length * 100) + "%";
 }
 
@@ -183,16 +233,16 @@ function actualizarProgreso(){
 const npsCont = document.getElementById("nps");
 const npsReaccion = document.getElementById("npsReaccion");
 function reaccionNps(i){
-  if (i <= 3) return ["Lamentamos que no fuera lo esperado. Cuéntanos abajo qué pasó.", colorNps(i)];
-  if (i <= 6) return ["Gracias por tu sinceridad. ¿Qué podríamos mejorar?", colorNps(i)];
-  if (i <= 8) return ["¡Qué bueno! Nos esforzamos por darte aún más.", colorNps(i)];
-  return ["¡Increíble! Nos encanta que la hayas pasado genial.", colorNps(i)];
+  if (i <= 3) return [CFG.reaccion_0_3, colorNps(i)];
+  if (i <= 6) return [CFG.reaccion_4_6, colorNps(i)];
+  if (i <= 8) return [CFG.reaccion_7_8, colorNps(i)];
+  return [CFG.reaccion_9_10, colorNps(i)];
 }
 for (let i = 0; i <= 10; i++) {
   const b = document.createElement("button");
   b.type = "button"; b.className = "nps-btn"; b.textContent = i;
   b.onclick = () => {
-    respuesta.nps = i;
+    respuesta.nps = i; interactuado = true;
     [...npsCont.children].forEach(c => { c.classList.remove("sel"); c.style.background = "#222"; });
     b.classList.add("sel"); b.style.background = colorNps(i);
     const [txt, col] = reaccionNps(i);
@@ -212,40 +262,57 @@ const ICOS = {
   limpieza:'<path d="M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15l-1.8-4.2L5.5 9l4.7-1.3L12 3Z"/><path d="M18 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2Z"/>',
   precio:'<path d="M3 12l8.7-8.7a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v5.9a2 2 0 0 1-.6 1.4L12 20.7a2 2 0 0 1-2.8 0L3 14.5a2 2 0 0 1 0-2.5Z"/><circle cx="16" cy="8" r="1.3"/>'
 };
-const categorias = [
-  { key:"csat_comida",   nombre:"Comida",   ico:ICOS.comida },
-  { key:"csat_servicio", nombre:"Servicio", ico:ICOS.servicio },
-  { key:"csat_ambiente", nombre:"Ambiente", ico:ICOS.ambiente },
-  { key:"csat_limpieza", nombre:"Limpieza", ico:ICOS.limpieza },
-  { key:"csat_precio",   nombre:"Precio",   ico:ICOS.precio },
-];
 const csatCont = document.getElementById("csat");
-categorias.forEach(cat => {
-  const row = document.createElement("div");
-  row.className = "cat-row";
+function construirCsat(){
+  csatCont.innerHTML = "";
+  categoriasActivas().forEach(cat => {
+    const colKey = "csat_" + cat.key;
+    const row = document.createElement("div");
+    row.className = "cat-row";
 
-  const left = document.createElement("div");
-  left.className = "cat-left";
-  left.innerHTML = `<span class="cat-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${cat.ico}</svg></span>
-    <span><span class="cat-name">${cat.nombre}</span><span class="cat-fb" id="fb-${cat.key}">Sin calificar</span></span>`;
+    const left = document.createElement("div");
+    left.className = "cat-left";
+    const ico = ICOS[cat.key] || "";
+    left.innerHTML = `<span class="cat-ico"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ico}</svg></span>
+      <span><span class="cat-name">${cat.nombre}</span><span class="cat-fb" id="fb-${colKey}">Sin calificar</span></span>`;
 
-  const stars = document.createElement("div");
-  stars.className = "stars";
-  for (let s = 1; s <= 5; s++) {
-    const star = document.createElement("span");
-    star.className = "star"; star.textContent = "★";
-    star.onclick = () => {
-      respuesta[cat.key] = s;
-      [...stars.children].forEach((st, idx) => st.classList.toggle("on", idx < s));
-      const fb = document.getElementById("fb-" + cat.key);
-      fb.textContent = PALABRAS[s]; fb.style.color = COLORES_FB[s];
-      actualizarProgreso();
-    };
-    stars.appendChild(star);
-  }
-  row.appendChild(left); row.appendChild(stars);
-  csatCont.appendChild(row);
-});
+    const stars = document.createElement("div");
+    stars.className = "stars";
+    for (let s = 1; s <= 5; s++) {
+      const star = document.createElement("span");
+      star.className = "star"; star.textContent = "★";
+      star.onclick = () => {
+        respuesta[colKey] = s; interactuado = true;
+        [...stars.children].forEach((st, idx) => st.classList.toggle("on", idx < s));
+        const fb = document.getElementById("fb-" + colKey);
+        fb.textContent = CFG.estrellas[s]; fb.style.color = COLORES_FB[s];
+        actualizarProgreso();
+      };
+      stars.appendChild(star);
+    }
+    row.appendChild(left); row.appendChild(stars);
+    csatCont.appendChild(row);
+  });
+}
+
+/* ===== Carga de configuración desde la hoja (textos y categorías) ===== */
+function esConfigValida(c){ return c && !Array.isArray(c) && (c.titulo || Array.isArray(c.categorias)); }
+function cargarConfig(){
+  const cb = "__cfgCb";
+  const s = document.createElement("script");
+  const limpiar = () => { try { s.remove(); } catch(_){} };
+  window[cb] = (data) => {
+    limpiar();
+    if (!esConfigValida(data)) return;   // si falla, se quedan los textos por defecto
+    CFG = Object.assign({}, DEFAULTS, data);
+    if (!Array.isArray(CFG.estrellas) || CFG.estrellas.length < 6) CFG.estrellas = DEFAULTS.estrellas;
+    if (!Array.isArray(CFG.categorias) || !CFG.categorias.length)  CFG.categorias = DEFAULTS.categorias;
+    if (!interactuado) { aplicarTextos(); construirCsat(); }
+  };
+  s.onerror = limpiar;
+  s.src = APPS_SCRIPT_URL + "?action=config&callback=" + cb + "&t=" + Date.now();
+  document.body.appendChild(s);
+}
 
 /* ===== Confeti ===== */
 function lanzarConfeti(){
@@ -283,6 +350,7 @@ btn.onclick = async () => {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(respuesta)
     });
+    enviado = true;
     document.getElementById("form").style.display = "none";
     document.getElementById("gracias").style.display = "block";
     document.getElementById("barra").style.width = "100%";
@@ -293,9 +361,14 @@ btn.onclick = async () => {
     const err = document.getElementById("error");
     err.textContent = "No se pudo enviar. Revisa tu conexión e inténtalo de nuevo.";
     err.style.display = "block";
-    btn.disabled = false; btn.textContent = "Enviar encuesta";
+    btn.disabled = false; btn.textContent = CFG.texto_boton || "Enviar encuesta";
   }
 };
+
+/* ===== Inicialización ===== */
+aplicarTextos();     // textos por defecto (la encuesta funciona aunque no haya config)
+construirCsat();     // categorías por defecto
+cargarConfig();      // intenta traer textos/categorías de la hoja y re-renderiza
 </script>
 </body>
 </html>

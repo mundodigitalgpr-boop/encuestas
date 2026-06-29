@@ -73,6 +73,31 @@ Imprímelo a un tamaño mínimo de **8 × 8 cm** y pruébalo con tu celular ante
 
 ---
 
+## ✏️ Editar textos y categorías SIN tocar código
+
+Todo el texto visible y las categorías se controlan desde **dos pestañas de tu Google Sheet** (las crea `inicializar`):
+
+### Pestaña **Config** — textos
+Columnas: **clave** (no la cambies) · **valor** (esto editas) · **qué controla**.
+
+Puedes cambiar, por ejemplo:
+- `titulo`, `subtitulo`, `pregunta_nps`, `pregunta_csat`, `texto_boton`
+- los 4 mensajes de reacción del NPS (`reaccion_0_3`, `reaccion_4_6`, `reaccion_7_8`, `reaccion_9_10`)
+- las palabras de las estrellas (`estrella_1` … `estrella_5`)
+- el texto de la pantalla de agradecimiento (`gracias_titulo`, `gracias_texto`)
+
+### Pestaña **Categorias** — qué se evalúa
+Columnas: **clave** (no la cambies) · **nombre** (editable) · **mostrar (SÍ/NO)**.
+
+- Cambia **nombre** para renombrar una categoría (p. ej. *Precio* → *Relación precio/calidad*).
+- Pon **NO** en *mostrar* para ocultar una categoría de la encuesta.
+
+> Los cambios se reflejan **al recargar** la encuesta y el dashboard. No hay que volver a desplegar ni subir archivos: la app lee la configuración en vivo desde la hoja.
+
+> 💡 Las **claves** (`comida`, `servicio`, …) corresponden a las columnas donde se guardan las notas. Por eso solo se editan el *nombre* y el *mostrar*; añadir una categoría totalmente nueva sí requiere un pequeño ajuste de código (puedo ayudarte).
+
+---
+
 ## 📊 Cómo se calcula el NPS
 
 - **Promotores**: respuestas 9–10
