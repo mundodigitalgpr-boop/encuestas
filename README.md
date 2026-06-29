@@ -5,7 +5,7 @@ App web **gratuita** (HTML + JavaScript puro) para medir la satisfacción de tus
 Mide:
 
 - **NPS** (Net Promoter Score) — escala 0 a 10.
-- **CSAT** por categoría con estrellas 1–5: **comida, servicio, ambiente, limpieza y precio**.
+- **ISC** (Índice de Satisfacción del Cliente) por categoría con estrellas 1–5: **comida, servicio, ambiente, limpieza y precio**.
 - **Comentario abierto** opcional.
 
 ## 📁 Archivos
@@ -13,7 +13,7 @@ Mide:
 | Archivo | Para qué sirve |
 |---|---|
 | `index.html` | Encuesta del cliente, **mobile-first**, con la imagen corporativa (negro + dorado). |
-| `dashboard.html` | Panel con gráficas (Chart.js): NPS, promedios CSAT, tendencia y comentarios. |
+| `dashboard.html` | Panel con gráficas (Chart.js): NPS, promedios ISC, tendencia y comentarios. |
 | `apps_script.gs` | Código de Google Apps Script que conecta la app con tu Google Sheet. |
 | `generar_qr.py` | Genera el póster QR corporativo con el logo embebido. |
 | `logo.jpg` | Logo de Churrascos Chaca #5. |
