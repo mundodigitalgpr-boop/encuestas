@@ -71,7 +71,7 @@
 <div class="wrap">
   <!-- KPIs -->
   <div class="kpis">
-    <div class="kpi nps"><div class="num" id="kpiNps">–</div><div class="cap">NPS</div><div id="npsBadge"></div></div>
+    <div class="kpi nps"><div class="num" id="kpiNps">–</div><div class="cap">NPS (0–100)</div><div id="npsBadge"></div></div>
     <div class="kpi csat" title="Índice de Satisfacción del Cliente"><div class="num" id="kpiCsat">–</div><div class="cap">ISC promedio (de 5)</div><div id="iscBadge"></div></div>
     <div class="kpi total"><div class="num" id="kpiTotal">–</div><div class="cap">Encuestas recibidas</div></div>
     <div class="kpi total"><div class="num" id="kpiProm">–</div><div class="cap">% Promotores</div></div>
@@ -168,7 +168,8 @@ function procesar(rows){
   const prom = data.filter(d=>d.nps>=9).length;
   const pas  = data.filter(d=>d.nps>=7 && d.nps<=8).length;
   const det  = data.filter(d=>d.nps<=6).length;
-  const nps  = Math.round((prom/n - det/n) * 100);
+  const npsClasico = Math.round((prom/n - det/n) * 100);   // -100..100 (clásico)
+  const nps = Math.round((npsClasico + 100) / 2);          // 0..100 (sin negativos)
   document.getElementById("kpiNps").textContent = nps;
   document.getElementById("kpiProm").textContent = Math.round(prom/n*100) + "%";
 
@@ -229,7 +230,7 @@ function procesar(rows){
   const tendencia = meses.map(k=>{
     const arr = porMes[k], t = arr.length;
     const p = arr.filter(d=>d.nps>=9).length, dt = arr.filter(d=>d.nps<=6).length;
-    return Math.round((p/t - dt/t)*100);
+    return Math.round(((p/t - dt/t)*100 + 100) / 2);   // escala 0..100
   });
 
   const iscMes = meses.map(k=>{
@@ -275,7 +276,7 @@ function pintar(prom, pas, det, proms, etiquetasMes, tendencia, iscMes){
       datasets:[{ label:"NPS", data:tendencia, borderColor:"#b91c1c", backgroundColor:"rgba(185,28,28,.12)",
         fill:true, tension:.3, pointBackgroundColor:"#b91c1c", pointRadius:4 }]},
     options:{ responsive:true, maintainAspectRatio:false,
-      scales:{ y:{ min:-100, max:100, ticks:{ stepSize:50 } } },
+      scales:{ y:{ min:0, max:100, ticks:{ stepSize:25 } } },
       plugins:{ legend:{ display:false } } }
   });
 

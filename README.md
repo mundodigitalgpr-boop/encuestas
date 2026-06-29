@@ -98,15 +98,23 @@ Columnas: **clave** (no la cambies) · **nombre** (editable) · **mostrar (SÍ/N
 
 ---
 
-## 📊 Cómo se calcula el NPS
+## 📊 Cómo se calcula el NPS y el ISC
 
-- **Promotores**: respuestas 9–10
-- **Pasivos**: respuestas 7–8
-- **Detractores**: respuestas 0–6
+**NPS** (a partir de la pregunta 0–10):
+- **Promotores**: 9–10 · **Pasivos**: 7–8 · **Detractores**: 0–6
+- NPS clásico = `% Promotores − % Detractores` (rango −100 a +100).
+- El dashboard lo muestra en **escala 0–100** = `(NPS_clásico + 100) / 2`, para que nunca sea negativo.
 
-**NPS = % Promotores − % Detractores**
+**ISC** (Índice de Satisfacción del Cliente, a partir de las estrellas 1–5):
+- Promedio de las categorías activas. En el dashboard también se expresa como **% = (ISC / 5) × 100**.
 
-Rango de −100 a +100. El dashboard lo etiqueta como **Crítico** (< 0), **Aceptable** (0–49) o **Excelente** (≥ 50).
+**Bandas estrictas y recomendaciones** (aplican a NPS 0–100 y a ISC %):
+
+| Nota | Valoración | Recomendación |
+|---|---|---|
+| **91–100** | Excelente | Buen trabajo, mantener el nivel. |
+| **86–90** | Bueno | Reforzar la cultura de servicio con el personal. |
+| **0–85** | Por mejorar | Trabajar planes de acción (el ISC señala además la categoría más baja). |
 
 ---
 
