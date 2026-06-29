@@ -157,9 +157,9 @@
 </div>
 
 <script>
-/* ===== Configuración Supabase ===== */
-const SUPABASE_URL = "https://bmladupirmrzaqgmmsyd.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbGFkdXBpcm1yemFxZ21tc3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MjMzMjcsImV4cCI6MjA5NzE5OTMyN30.hjlZ61IrvRxtMuuezE6dMZ4UhcV92ocWMXFP_baPC0o";
+/* ===== Configuración Google Sheets (Apps Script) ===== */
+/* Pega aquí la URL de tu Web App de Apps Script (termina en /exec) */
+const APPS_SCRIPT_URL = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT/exec";
 
 /* ===== Estado ===== */
 const respuesta = {
@@ -275,17 +275,14 @@ btn.onclick = async () => {
   btn.disabled = true; btn.textContent = "Enviando...";
 
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/encuestas`, {
+    /* Apps Script no envía cabeceras CORS: usamos text/plain (petición simple)
+       y mode no-cors. La fila se guarda aunque la respuesta sea opaca. */
+    await fetch(APPS_SCRIPT_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-        "Prefer": "return=minimal"
-      },
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(respuesta)
     });
-    if (!res.ok) throw new Error(await res.text());
     document.getElementById("form").style.display = "none";
     document.getElementById("gracias").style.display = "block";
     document.getElementById("barra").style.width = "100%";

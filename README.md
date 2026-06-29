@@ -1,6 +1,6 @@
-# 🍽️ Encuestas de Satisfacción para Restaurante
+# 🍽️ Encuestas de Satisfacción — Churrascos Chaca #5
 
-App web **gratuita** (HTML + JavaScript puro) para medir la satisfacción de tus clientes mediante un código QR. Sin backend propio, sin costos de servidor: usa **Supabase** (capa gratuita) para guardar las respuestas y **GitHub Pages** (gratis) para publicarla.
+App web **gratuita** (HTML + JavaScript puro) para medir la satisfacción de tus clientes mediante un código QR. Sin backend propio y sin costos: guarda las respuestas en una **Google Sheet** (vía Google Apps Script) y se publica en **Netlify** o **GitHub Pages** (gratis).
 
 Mide:
 
@@ -12,71 +12,64 @@ Mide:
 
 | Archivo | Para qué sirve |
 |---|---|
-| `index.html` | Encuesta del cliente, **mobile-first** para escanear desde un QR. |
+| `index.html` | Encuesta del cliente, **mobile-first**, con la imagen corporativa (negro + dorado). |
 | `dashboard.html` | Panel con gráficas (Chart.js): NPS, promedios CSAT, tendencia y comentarios. |
-| `schema_encuestas.sql` | Tabla `encuestas` + políticas RLS para Supabase. |
-| `README.md` | Este archivo. |
+| `apps_script.gs` | Código de Google Apps Script que conecta la app con tu Google Sheet. |
+| `generar_qr.py` | Genera el póster QR corporativo con el logo embebido. |
+| `logo.jpg` | Logo de Churrascos Chaca #5. |
+| `schema_encuestas.sql` | *(Opcional / legado)* Esquema para Supabase, por si prefieres esa base. |
 
 ---
 
-## 1️⃣ Configurar Supabase
+## 1️⃣ Configurar Google Sheets (Apps Script)
 
-> El proyecto ya está conectado a Supabase **`bmladupirmrzaqgmmsyd`** y la tabla `encuestas` **ya fue creada**. Esta sección sirve para replicarlo en otro proyecto o entenderlo.
-
-1. Crea una cuenta gratuita en [supabase.com](https://supabase.com) y un proyecto nuevo.
-2. En el panel, ve a **SQL Editor → New query**, pega el contenido de [`schema_encuestas.sql`](./schema_encuestas.sql) y ejecútalo (**Run**). Esto crea:
-   - La tabla `public.encuestas` con validaciones (`nps` 0–10, CSAT 1–5).
-   - **RLS activado** con dos políticas para el rol anónimo:
-     - ✅ puede **insertar** (enviar encuestas),
-     - ✅ puede **leer** (mostrar el dashboard),
-     - ❌ **no** puede actualizar ni borrar.
-3. Copia tus credenciales desde **Project Settings → API**:
-   - **Project URL** → `https://bmladupirmrzaqgmmsyd.supabase.co`
-   - **anon public key** (la `apikey` pública del cliente).
-4. Pega esos valores en la parte superior del `<script>` de **`index.html`** y **`dashboard.html`**:
+1. Crea una **Google Sheet** nueva en [sheets.new](https://sheets.new).
+2. Menú **Extensiones → Apps Script**.
+3. Borra el código de ejemplo y **pega todo el contenido de [`apps_script.gs`](./apps_script.gs)**.
+4. Arriba, selecciona la función **`inicializar`** y pulsa **Ejecutar** ▶. Autoriza los permisos cuando te lo pida (es tu propia hoja). Esto crea la pestaña **Encuestas** con los encabezados.
+5. Pulsa **Implementar → Nueva implementación**.
+   - Tipo: **Aplicación web**.
+   - **Ejecutar como:** *Yo*.
+   - **Quién tiene acceso:** *Cualquier persona*.
+   - **Implementar** y copia la **URL de la aplicación web** (termina en `/exec`).
+6. Pega esa URL en **`index.html`** y **`dashboard.html`**, en la línea:
 
    ```js
-   const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
-   const SUPABASE_ANON_KEY = "TU_ANON_KEY";
+   const APPS_SCRIPT_URL = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT/exec";
    ```
 
-   > 🔒 La **anon key es pública por diseño** y puede ir en el HTML. La seguridad la da el **RLS**: con esta llave solo se puede insertar y leer encuestas anónimas (sin datos personales), nunca tocar el resto de tus tablas.
+> 🔒 La hoja y el script son **tuyos**. La app solo agrega filas (encuesta) y lee filas (dashboard). No se exponen credenciales de ningún otro sistema.
+
+> ⚠️ **Cada vez que cambies el código del script**, vuelve a **Implementar → Gestionar implementaciones → editar (lápiz) → Versión: Nueva → Implementar** para que los cambios surtan efecto. La URL `/exec` se mantiene.
 
 ---
 
-## 2️⃣ Publicar en GitHub Pages (gratis)
+## 2️⃣ Publicar la app (Netlify Drop — gratis y sin Git)
 
-1. Sube estos archivos a la **raíz** de tu repositorio en GitHub (ya hecho con el commit a `main`).
-2. En GitHub: **Settings → Pages**.
-3. En **Build and deployment → Source**, elige **Deploy from a branch**.
-4. Selecciona la rama **`main`** y la carpeta **`/ (root)`**, y pulsa **Save**.
-5. Espera ~1 minuto. Tu encuesta quedará disponible en:
+1. Sube `index.html`, `dashboard.html` y `logo.jpg` a [app.netlify.com/drop](https://app.netlify.com/drop) (arrástralos).
+2. Netlify te da una URL como `https://chaca5.netlify.app`.
+3. Para actualizar: entra a tu sitio → pestaña **Deploys** → arrastra los archivos de nuevo. **La URL no cambia**, así que tu QR sigue sirviendo.
 
-   ```
-   https://<tu-usuario>.github.io/<tu-repo>/index.html
-   ```
+- **Encuesta (para el QR):** `https://chaca5.netlify.app/`
+- **Dashboard:** `https://chaca5.netlify.app/dashboard.html`
 
-   Y el panel en:
-
-   ```
-   https://<tu-usuario>.github.io/<tu-repo>/dashboard.html
-   ```
-
-> Para este repo: **`https://mundodigitalgpr-boop.github.io/encuestas/`**
+> *Alternativa:* también puedes usar **GitHub Pages** (Settings → Pages → rama `main` → `/root`).
 
 ---
 
-## 3️⃣ Generar el código QR
+## 3️⃣ Generar el código QR corporativo
 
-1. Copia la URL de tu **encuesta** (`.../index.html`).
-2. Genera un QR gratis en cualquier generador, por ejemplo:
-   - [qr-code-generator.com](https://www.qr-code-generator.com)
-   - [qrcode.tec-it.com](https://qrcode.tec-it.com)
-   - O en Google: busca *"crear código QR"*.
-3. Descarga el QR e imprímelo en **mesas, tickets, mostrador o vitrina**.
-4. El cliente escanea con la cámara → abre la encuesta → responde en menos de 1 minuto. 🎉
+Con Python (requiere `pip install "qrcode[pil]" pillow`):
 
-> 💡 Consejo: añade un texto como *"Escanea y cuéntanos cómo te fue 🍽️"* junto al QR para subir la tasa de respuesta.
+```bash
+python3 generar_qr.py "https://chaca5.netlify.app/"
+```
+
+Genera:
+- `qr_chaca.png` → póster completo (negro + marco dorado + logo + texto), listo para imprimir.
+- `qr_chaca_simple.png` → solo el QR con el logo (para tickets o redes).
+
+Imprímelo a un tamaño mínimo de **8 × 8 cm** y pruébalo con tu celular antes de colocarlo en las mesas.
 
 ---
 
@@ -96,11 +89,11 @@ Rango de −100 a +100. El dashboard lo etiqueta como **Crítico** (< 0), **Acep
 
 | Problema | Solución |
 |---|---|
-| La encuesta no envía | Verifica `SUPABASE_URL` y `SUPABASE_ANON_KEY`; abre la consola del navegador (F12) para ver el error. |
-| Dashboard sin datos | Asegúrate de haber enviado al menos una encuesta y de que la política de **lectura (select)** del RLS esté activa. |
-| Error 401 / 403 | Revisa que las políticas RLS de `schema_encuestas.sql` se hayan ejecutado correctamente. |
-| GitHub Pages no aparece | Confirma que Pages apunta a la rama `main` y carpeta `/root`; espera 1–2 minutos tras guardar. |
+| La encuesta no guarda | Verifica que `APPS_SCRIPT_URL` termine en `/exec` y que la implementación tenga acceso *"Cualquier persona"*. |
+| Dashboard sin datos | Confirma que ejecutaste `inicializar` y que la URL de Apps Script es la correcta. Abre la consola del navegador (F12) para ver errores. |
+| Cambié el script y no se refleja | Crea una **nueva versión** de la implementación (ver nota ⚠️ en la sección 1). |
+| Quiero ver las respuestas crudas | Ábrelas directamente en la pestaña **Encuestas** de tu Google Sheet. |
 
 ---
 
-Hecho con ❤️ usando HTML, [Chart.js](https://www.chartjs.org) y [Supabase](https://supabase.com).
+Hecho con ❤️ usando HTML, [Chart.js](https://www.chartjs.org) y [Google Apps Script](https://developers.google.com/apps-script).

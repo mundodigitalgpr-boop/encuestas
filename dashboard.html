@@ -91,9 +91,9 @@
 </div>
 
 <script>
-/* ===== Configuración Supabase ===== */
-const SUPABASE_URL = "https://bmladupirmrzaqgmmsyd.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtbGFkdXBpcm1yemFxZ21tc3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MjMzMjcsImV4cCI6MjA5NzE5OTMyN30.hjlZ61IrvRxtMuuezE6dMZ4UhcV92ocWMXFP_baPC0o";
+/* ===== Configuración Google Sheets (Apps Script) ===== */
+/* Pega aquí la URL de tu Web App de Apps Script (termina en /exec) */
+const APPS_SCRIPT_URL = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT/exec";
 
 const CATS = [
   { key:"csat_comida",   nombre:"Comida" },
@@ -105,18 +105,39 @@ const CATS = [
 
 let charts = {};
 
-async function cargar(){
-  let data = [];
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/encuestas?select=*&order=created_at.asc`, {
-      headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": `Bearer ${SUPABASE_ANON_KEY}` }
-    });
-    if (!res.ok) throw new Error(await res.text());
-    data = await res.json();
-  } catch(e){
-    document.getElementById("meta").textContent = "Error al cargar datos. Revisa la configuración de Supabase.";
-    console.error(e); return;
-  }
+/* Lectura por JSONP: evita problemas de CORS con Apps Script */
+function cargar(){
+  document.getElementById("meta").textContent = "Cargando datos...";
+  const cb = "__chacaCb";
+  const s = document.createElement("script");
+  const limpiar = () => { try { s.remove(); } catch(_){} };
+  window[cb] = (rows) => { limpiar(); try { procesar(rows || []); } catch(e){ mostrarError(e); } };
+  s.onerror = () => { limpiar(); mostrarError("No se pudo conectar con Apps Script."); };
+  s.src = APPS_SCRIPT_URL + "?action=list&callback=" + cb + "&t=" + Date.now();
+  document.body.appendChild(s);
+}
+
+function mostrarError(e){
+  document.getElementById("meta").textContent = "Error al cargar datos. Revisa la URL de Apps Script en dashboard.html.";
+  console.error(e);
+}
+
+/* Convierte a número o null (la hoja puede traer celdas vacías o texto) */
+function num(v){
+  if (v === "" || v === null || v === undefined) return null;
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+function procesar(rows){
+  const data = rows.map(d => ({
+    created_at: d.created_at || "",
+    nps: num(d.nps),
+    csat_comida: num(d.csat_comida),   csat_servicio: num(d.csat_servicio),
+    csat_ambiente: num(d.csat_ambiente), csat_limpieza: num(d.csat_limpieza),
+    csat_precio: num(d.csat_precio),
+    comentario: d.comentario == null ? "" : String(d.comentario)
+  })).filter(d => d.nps !== null);
 
   const n = data.length;
   document.getElementById("meta").textContent =
