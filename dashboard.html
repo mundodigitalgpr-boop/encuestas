@@ -206,9 +206,15 @@ function procesar(rows){
     else if (iscPct >= 86) { icls='b-mid'; ilabel='Bueno';       ircls='mid'; irmsg='Refuercen los detalles del servicio para subir la satisfacción.'; }
     else                   { icls='b-bad'; ilabel='Por mejorar'; ircls='bad'; irmsg='Trabajen planes de acción para mejorar la satisfacción del cliente.'; }
     iscBadge.innerHTML = `<span class="badge ${icls}">${ilabel}</span>`;
+
+    /* Categoría peor evaluada (para enfocar el plan de acción) */
+    const conDatos = CATS.map((c,i)=>({ nombre:c.nombre, prom:proms[i] })).filter(x=>x.prom>0);
+    const peor = conDatos.reduce((a,b)=> b.prom < a.prom ? b : a);
+    const peorTxt = ` Categoría más baja: <b>${escapar(peor.nombre)}</b> (${peor.prom.toFixed(1)}/5).`;
+
     recoIsc.className = "reco " + ircls;
     recoIsc.style.display = "flex";
-    recoIsc.innerHTML = `<span class="tag">ISC</span><span class="msg">${iscAvg.toFixed(1)}/5 (${iscPct}%) · ${irmsg}</span>`;
+    recoIsc.innerHTML = `<span class="tag">ISC</span><span class="msg">${iscAvg.toFixed(1)}/5 (${iscPct}%) · ${irmsg}${peorTxt}</span>`;
   }
 
   /* ---- Agregación por MES (YYYY-MM) ---- */
