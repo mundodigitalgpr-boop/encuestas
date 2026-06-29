@@ -72,13 +72,14 @@
   <!-- KPIs -->
   <div class="kpis">
     <div class="kpi nps"><div class="num" id="kpiNps">–</div><div class="cap">NPS</div><div id="npsBadge"></div></div>
-    <div class="kpi csat" title="Índice de Satisfacción del Cliente"><div class="num" id="kpiCsat">–</div><div class="cap">ISC promedio (de 5)</div></div>
+    <div class="kpi csat" title="Índice de Satisfacción del Cliente"><div class="num" id="kpiCsat">–</div><div class="cap">ISC promedio (de 5)</div><div id="iscBadge"></div></div>
     <div class="kpi total"><div class="num" id="kpiTotal">–</div><div class="cap">Encuestas recibidas</div></div>
     <div class="kpi total"><div class="num" id="kpiProm">–</div><div class="cap">% Promotores</div></div>
   </div>
 
-  <!-- Recomendación según la nota estricta de NPS -->
+  <!-- Recomendaciones según las notas estrictas de NPS e ISC -->
   <div id="recomendacion" class="reco" style="display:none;"></div>
+  <div id="recomendacionIsc" class="reco" style="display:none;"></div>
 
   <div class="grid">
     <div class="panel">
@@ -181,7 +182,7 @@ function procesar(rows){
   const reco = document.getElementById("recomendacion");
   reco.className = "reco " + rcls;
   reco.style.display = "flex";
-  reco.innerHTML = `<span class="tag">Recomendación</span><span class="msg">NPS ${nps} · ${rmsg}</span>`;
+  reco.innerHTML = `<span class="tag">NPS</span><span class="msg">${nps} · ${rmsg}</span>`;
 
   /* ---- ISC promedios por categoría ---- */
   const proms = CATS.map(c=>{
@@ -189,8 +190,26 @@ function procesar(rows){
     return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
   });
   const iscGlobal = proms.filter(p=>p>0);
-  document.getElementById("kpiCsat").textContent =
-    iscGlobal.length ? (iscGlobal.reduce((a,b)=>a+b,0)/iscGlobal.length).toFixed(1) : "–";
+  const iscAvg = iscGlobal.length ? iscGlobal.reduce((a,b)=>a+b,0)/iscGlobal.length : null;
+  document.getElementById("kpiCsat").textContent = iscAvg != null ? iscAvg.toFixed(1) : "–";
+
+  /* ISC estricto: mismas bandas que NPS pero en % (ISC/5).
+     ≤85 → planes de acción · 86–90 → reforzar · 91–100 → buen trabajo */
+  const iscBadge = document.getElementById("iscBadge");
+  const recoIsc  = document.getElementById("recomendacionIsc");
+  if (iscAvg == null){
+    iscBadge.innerHTML = ""; recoIsc.style.display = "none";
+  } else {
+    const iscPct = Math.round(iscAvg / 5 * 100);
+    let icls, ilabel, ircls, irmsg;
+    if (iscPct >= 91)      { icls='b-ok';  ilabel='Excelente';   ircls='ok';  irmsg='¡Buen trabajo! La satisfacción del cliente es excelente.'; }
+    else if (iscPct >= 86) { icls='b-mid'; ilabel='Bueno';       ircls='mid'; irmsg='Refuercen los detalles del servicio para subir la satisfacción.'; }
+    else                   { icls='b-bad'; ilabel='Por mejorar'; ircls='bad'; irmsg='Trabajen planes de acción para mejorar la satisfacción del cliente.'; }
+    iscBadge.innerHTML = `<span class="badge ${icls}">${ilabel}</span>`;
+    recoIsc.className = "reco " + ircls;
+    recoIsc.style.display = "flex";
+    recoIsc.innerHTML = `<span class="tag">ISC</span><span class="msg">${iscAvg.toFixed(1)}/5 (${iscPct}%) · ${irmsg}</span>`;
+  }
 
   /* ---- Agregación por MES (YYYY-MM) ---- */
   const porMes = {};
