@@ -51,6 +51,15 @@
   .coment .txt{font-size:.92rem;}
   .coment-list{max-height:360px;overflow:auto;}
   .loading,.empty{text-align:center;color:var(--gris);padding:40px;}
+  /* Tabla detalle por cliente */
+  .tabla-wrap{overflow:auto;max-height:460px;border:1px solid var(--linea);border-radius:10px;}
+  table.detalle{width:100%;border-collapse:collapse;font-size:.85rem;}
+  table.detalle th,table.detalle td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--linea);white-space:nowrap;}
+  table.detalle thead th{position:sticky;top:0;background:#faf7f2;color:#b45309;font-weight:700;z-index:1;}
+  table.detalle tbody tr:nth-child(even){background:#fafafa;}
+  table.detalle tbody tr:hover{background:#fffdf5;}
+  table.detalle td.coment{text-align:left;white-space:normal;min-width:160px;color:var(--gris);}
+  .pill{display:inline-block;min-width:24px;padding:2px 7px;border-radius:6px;font-weight:700;color:#fff;}
   .refresh{background:#f59e0b;color:#141414;border:none;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:.85rem;}
 </style>
 </head>
@@ -101,6 +110,10 @@
     <div class="panel full">
       <h2>Comentarios recientes</h2>
       <div class="coment-list" id="comentarios"><div class="loading">Cargando...</div></div>
+    </div>
+    <div class="panel full">
+      <h2>Detalle de respuestas por cliente</h2>
+      <div class="tabla-wrap" id="tablaDetalle"><div class="loading">Cargando...</div></div>
     </div>
   </div>
 </div>
@@ -161,6 +174,7 @@ function procesar(rows){
 
   if (n === 0){
     document.getElementById("comentarios").innerHTML = '<div class="empty">Aún no hay respuestas. ¡Comparte el QR de la encuesta!</div>';
+    document.getElementById("tablaDetalle").innerHTML = '<div class="empty">Aún no hay respuestas.</div>';
     return;
   }
 
@@ -241,6 +255,37 @@ function procesar(rows){
 
   pintar(prom, pas, det, proms, etiquetasMes, tendencia, iscMes);
   pintarComentarios(data);
+  pintarTabla(data);
+}
+
+/* Tabla con el detalle de cada respuesta (más reciente arriba) */
+function pintarTabla(data){
+  const cont = document.getElementById("tablaDetalle");
+  if (!data.length){ cont.innerHTML = '<div class="empty">Aún no hay respuestas.</div>'; return; }
+
+  const head = `<tr><th>Fecha y hora</th><th>NPS (0–10)</th>` +
+    CATS.map(c => `<th>${escapar(c.nombre)}</th>`).join("") +
+    `<th>ISC</th><th>Comentario</th></tr>`;
+
+  const filas = data.slice().reverse().map(d => {
+    const fh = d.created_at
+      ? new Date(d.created_at).toLocaleString("es", {day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})
+      : "—";
+    const npsColor = d.nps>=9 ? "#16a34a" : (d.nps>=7 ? "#f59e0b" : "#dc2626");
+    const celdasCat = CATS.map(c => { const v = d[c.key]; return `<td>${v!=null ? v : "—"}</td>`; }).join("");
+    const vals = CATS.map(c => d[c.key]).filter(v => v!=null);
+    const isc = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : "—";
+    const com = (d.comentario && d.comentario.trim()) ? escapar(d.comentario) : "—";
+    return `<tr>
+      <td>${fh}</td>
+      <td><span class="pill" style="background:${npsColor}">${d.nps}</span></td>
+      ${celdasCat}
+      <td><b>${isc}</b></td>
+      <td class="coment">${com}</td>
+    </tr>`;
+  }).join("");
+
+  cont.innerHTML = `<table class="detalle"><thead>${head}</thead><tbody>${filas}</tbody></table>`;
 }
 
 /* "2026-06" → "jun 2026" */
