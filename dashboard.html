@@ -31,6 +31,13 @@
   .kpi.total .num{color:var(--txt);}
   .kpi .badge{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:999px;margin-top:8px;font-weight:600;}
   .b-ok{background:#dcfce7;color:#166534;} .b-mid{background:#fef9c3;color:#854d0e;} .b-bad{background:#fee2e2;color:#991b1b;}
+  /* Recomendación */
+  .reco{border-radius:14px;padding:14px 18px;margin-bottom:22px;display:flex;gap:12px;align-items:flex-start;border-left:6px solid;}
+  .reco .tag{font-weight:800;text-transform:uppercase;font-size:.7rem;letter-spacing:.5px;padding:3px 8px;border-radius:999px;white-space:nowrap;}
+  .reco .msg{font-weight:600;font-size:.95rem;line-height:1.45;}
+  .reco.ok{background:#dcfce7;border-color:#16a34a;color:#166534;} .reco.ok .tag{background:#16a34a;color:#fff;}
+  .reco.mid{background:#fef9c3;border-color:#f59e0b;color:#854d0e;} .reco.mid .tag{background:#f59e0b;color:#fff;}
+  .reco.bad{background:#fee2e2;border-color:#dc2626;color:#991b1b;} .reco.bad .tag{background:#dc2626;color:#fff;}
   /* Grid de gráficas */
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
   @media(max-width:760px){.grid{grid-template-columns:1fr;}}
@@ -70,6 +77,9 @@
     <div class="kpi total"><div class="num" id="kpiProm">–</div><div class="cap">% Promotores</div></div>
   </div>
 
+  <!-- Recomendación según la nota estricta de NPS -->
+  <div id="recomendacion" class="reco" style="display:none;"></div>
+
   <div class="grid">
     <div class="panel">
       <h2>Distribución NPS (Promotores / Pasivos / Detractores)</h2>
@@ -80,8 +90,12 @@
       <div class="chart-box"><canvas id="chartCsat"></canvas></div>
     </div>
     <div class="panel full">
-      <h2>Tendencia del NPS (por día)</h2>
+      <h2>Tendencia del NPS (por mes)</h2>
       <div class="chart-box"><canvas id="chartTendencia"></canvas></div>
+    </div>
+    <div class="panel full">
+      <h2>ISC promedio por mes <span style="font-weight:400;color:var(--gris);font-size:.8rem;">(escala 1–5)</span></h2>
+      <div class="chart-box"><canvas id="chartIscMes"></canvas></div>
     </div>
     <div class="panel full">
       <h2>Comentarios recientes</h2>
@@ -149,45 +163,68 @@ function procesar(rows){
     return;
   }
 
-  /* ---- NPS ---- */
+  /* ---- NPS (nota estricta) ---- */
   const prom = data.filter(d=>d.nps>=9).length;
   const pas  = data.filter(d=>d.nps>=7 && d.nps<=8).length;
   const det  = data.filter(d=>d.nps<=6).length;
   const nps  = Math.round((prom/n - det/n) * 100);
   document.getElementById("kpiNps").textContent = nps;
   document.getElementById("kpiProm").textContent = Math.round(prom/n*100) + "%";
-  const badge = document.getElementById("npsBadge");
-  if (nps >= 50){ badge.innerHTML = '<span class="badge b-ok">Excelente</span>'; }
-  else if (nps >= 0){ badge.innerHTML = '<span class="badge b-mid">Aceptable</span>'; }
-  else { badge.innerHTML = '<span class="badge b-bad">Crítico</span>'; }
 
-  /* ---- CSAT promedios ---- */
+  /* Bandas estrictas + recomendación:
+     ≤85 → planes de acción · 86–90 → reforzar cultura · 91–100 → buen trabajo */
+  let bcls, blabel, rcls, rmsg;
+  if (nps >= 91)      { bcls='b-ok';  blabel='Excelente';   rcls='ok';  rmsg='¡Buen trabajo! Mantengan el nivel de servicio.'; }
+  else if (nps >= 86) { bcls='b-mid'; blabel='Bueno';       rcls='mid'; rmsg='Refuercen la cultura de servicio con el personal.'; }
+  else                { bcls='b-bad'; blabel='Por mejorar'; rcls='bad'; rmsg='Trabajen planes de acción para mejorar la nota.'; }
+  document.getElementById("npsBadge").innerHTML = `<span class="badge ${bcls}">${blabel}</span>`;
+  const reco = document.getElementById("recomendacion");
+  reco.className = "reco " + rcls;
+  reco.style.display = "flex";
+  reco.innerHTML = `<span class="tag">Recomendación</span><span class="msg">NPS ${nps} · ${rmsg}</span>`;
+
+  /* ---- ISC promedios por categoría ---- */
   const proms = CATS.map(c=>{
     const vals = data.map(d=>d[c.key]).filter(v=>v!=null);
     return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
   });
-  const csatGlobal = proms.filter(p=>p>0);
+  const iscGlobal = proms.filter(p=>p>0);
   document.getElementById("kpiCsat").textContent =
-    csatGlobal.length ? (csatGlobal.reduce((a,b)=>a+b,0)/csatGlobal.length).toFixed(1) : "–";
+    iscGlobal.length ? (iscGlobal.reduce((a,b)=>a+b,0)/iscGlobal.length).toFixed(1) : "–";
 
-  /* ---- Tendencia por día ---- */
-  const porDia = {};
+  /* ---- Agregación por MES (YYYY-MM) ---- */
+  const porMes = {};
   data.forEach(d=>{
-    const k = (d.created_at||"").slice(0,10);
-    (porDia[k] ??= []).push(d.nps);
+    const k = (d.created_at||"").slice(0,7);
+    if (k.length === 7) (porMes[k] ??= []).push(d);
   });
-  const dias = Object.keys(porDia).sort();
-  const tendencia = dias.map(k=>{
-    const arr = porDia[k], t = arr.length;
-    const p = arr.filter(v=>v>=9).length, dt = arr.filter(v=>v<=6).length;
+  const meses = Object.keys(porMes).sort();
+  const etiquetasMes = meses.map(mesLabel);
+
+  const tendencia = meses.map(k=>{
+    const arr = porMes[k], t = arr.length;
+    const p = arr.filter(d=>d.nps>=9).length, dt = arr.filter(d=>d.nps<=6).length;
     return Math.round((p/t - dt/t)*100);
   });
 
-  pintar(prom, pas, det, proms, dias, tendencia);
+  const iscMes = meses.map(k=>{
+    let suma=0, cnt=0;
+    porMes[k].forEach(d => CATS.forEach(c => { const v=d[c.key]; if (v!=null){ suma+=v; cnt++; } }));
+    return cnt ? +(suma/cnt).toFixed(2) : 0;
+  });
+
+  pintar(prom, pas, det, proms, etiquetasMes, tendencia, iscMes);
   pintarComentarios(data);
 }
 
-function pintar(prom, pas, det, proms, dias, tendencia){
+/* "2026-06" → "jun 2026" */
+function mesLabel(k){
+  const p = k.split("-");
+  const nombres = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  return (nombres[parseInt(p[1],10)-1] || p[1]) + " " + p[0];
+}
+
+function pintar(prom, pas, det, proms, etiquetasMes, tendencia, iscMes){
   Object.values(charts).forEach(c=>c.destroy());
 
   charts.dona = new Chart(document.getElementById("chartNpsDona"), {
@@ -200,7 +237,7 @@ function pintar(prom, pas, det, proms, dias, tendencia){
   charts.csat = new Chart(document.getElementById("chartCsat"), {
     type:"bar",
     data:{ labels:CATS.map(c=>c.nombre),
-      datasets:[{ label:"Promedio (1-5)", data:proms.map(p=>+p.toFixed(2)),
+      datasets:[{ label:"ISC (1-5)", data:proms.map(p=>+p.toFixed(2)),
         backgroundColor:"#f59e0b", borderRadius:8 }]},
     options:{ responsive:true, maintainAspectRatio:false,
       scales:{ y:{ beginAtZero:true, max:5, ticks:{ stepSize:1 } } },
@@ -209,11 +246,21 @@ function pintar(prom, pas, det, proms, dias, tendencia){
 
   charts.tend = new Chart(document.getElementById("chartTendencia"), {
     type:"line",
-    data:{ labels:dias,
+    data:{ labels:etiquetasMes,
       datasets:[{ label:"NPS", data:tendencia, borderColor:"#b91c1c", backgroundColor:"rgba(185,28,28,.12)",
         fill:true, tension:.3, pointBackgroundColor:"#b91c1c", pointRadius:4 }]},
     options:{ responsive:true, maintainAspectRatio:false,
       scales:{ y:{ min:-100, max:100, ticks:{ stepSize:50 } } },
+      plugins:{ legend:{ display:false } } }
+  });
+
+  charts.iscMes = new Chart(document.getElementById("chartIscMes"), {
+    type:"bar",
+    data:{ labels:etiquetasMes,
+      datasets:[{ label:"ISC promedio (1-5)", data:iscMes,
+        backgroundColor:"#16a34a", borderRadius:8 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{ y:{ beginAtZero:true, max:5, ticks:{ stepSize:1 } } },
       plugins:{ legend:{ display:false } } }
   });
 }
