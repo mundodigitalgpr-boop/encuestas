@@ -35,6 +35,32 @@ function inicializar() {
   return 'Listo: pestaña "' + SHEET_NAME + '" preparada.';
 }
 
+/**
+ * Importa las 7 respuestas históricas (migradas desde Supabase).
+ * Ejecútala UNA vez, después de `inicializar`. Es segura: solo agrega
+ * el histórico si la hoja todavía no tiene respuestas (evita duplicados).
+ */
+var HISTORICO = [
+  ['2026-06-17T13:12:29Z', 5,  5,4,4,4,2, ''],
+  ['2026-06-17T13:18:42Z', 9,  4,4,5,5,5, 'Buen servicio'],
+  ['2026-06-17T13:20:32Z', 10, 4,5,3,1,5, 'Ejemplo'],
+  ['2026-06-17T13:24:22Z', 10, 5,4,2,5,5, ''],
+  ['2026-06-17T14:10:18Z', 2,  2,2,2,2,2, '.'],
+  ['2026-06-17T15:54:30Z', 10, 5,5,3,4,3, ''],
+  ['2026-06-23T03:50:12Z', 10, 4,4,4,4,4, 'Son amables y amigables']
+];
+
+function importarHistorico() {
+  var sh = _hoja();
+  if (sh.getLastRow() > 1) {
+    return 'La hoja ya tiene respuestas; no se importó el histórico (para evitar duplicados).';
+  }
+  HISTORICO.forEach(function (r) {
+    sh.appendRow([new Date(r[0]), r[1], r[2], r[3], r[4], r[5], r[6], r[7]]);
+  });
+  return 'Importadas ' + HISTORICO.length + ' respuestas históricas.';
+}
+
 function _hoja() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SHEET_NAME);
